@@ -51,19 +51,23 @@ def create_database():
 
     # Execute a command: this creates a new table
     cur.execute("""
-        CREATE TABLE test (id serial PRIMARY KEY, num integer, data varchar);
+        CREATE TABLE "employees" (
+            "id" serial NOT NULL PRIMARY KEY,
+            "username" text NOT NULL UNIQUE,
+            "city" text NOT NULL, "country" text NOT NULL
+        );
+        CREATE INDEX "employees_username_451f2112_like" ON "employees" (
+            "username" text_pattern_ops
+        );
+        CREATE INDEX "employees_city_1b905c49" ON "employees" ("city");
+        CREATE INDEX "employees_city_1b905c49_like" ON "employees" (
+            "city" text_pattern_ops
+        );
+        CREATE INDEX "employees_country_bd071a73" ON "employees" ("country");
+        CREATE INDEX "employees_country_bd071a73_like" ON "employees" (
+            "country" text_pattern_ops
+        );
     """)
-
-    # Pass data to fill a query placeholders and let Psycopg perform
-    # the correct conversion (no more SQL injections!)
-    cur.execute(
-        "INSERT INTO test (num, data) VALUES (%s, %s)",
-        (100, "abc'def")
-    )
-
-    # Query the database and obtain data as Python objects
-    cur.execute("SELECT * FROM test;")
-    cur.fetchone()
 
     # Make the changes to the database persistent
     conn.commit()
