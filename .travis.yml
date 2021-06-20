@@ -1,0 +1,18 @@
+language: python
+services:
+  - docker
+before_install:
+- docker pull postgres:13.2
+- docker run --name some-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:13.2
+python:
+  - "3.8.6"
+install:
+  - pip install pipenv
+  - pipenv install --dev
+env:
+  - DATABASE_HOST=localhost AWS_ACCESS_KEY_ID=DUMMYIDEXAMPLE AWS_SECRET_ACCESS_KEY=DUMMYEXAMPLEKEY AWS_DEFAULT_REGION=us-east-2
+links:
+  - postgres
+script:
+  - pipenv run python employees_api/create_database.py
+  - make test

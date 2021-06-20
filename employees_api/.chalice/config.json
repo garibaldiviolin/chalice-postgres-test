@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "app_name": "employees_api",
+  "stages": {
+    "dev": {
+      "environment_variables": {
+          "DATABASE_HOST": "localhost",
+          "DATABASE_USER": "postgres",
+          "DATABASE_PASSWORD": "postgres",
+      },
+      "api_gateway_stage": "api",
+      "autogen_policy": false,
+      "iam_policy_file": "policy-dev.json"
+    }
+  }
+}
