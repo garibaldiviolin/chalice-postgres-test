@@ -6,7 +6,7 @@
       "environment_variables": {
           "DATABASE_HOST": "localhost",
           "DATABASE_USER": "postgres",
-          "DATABASE_PASSWORD": "postgres",
+          "DATABASE_PASSWORD": "postgres"
       },
       "api_gateway_stage": "api",
       "autogen_policy": false,
