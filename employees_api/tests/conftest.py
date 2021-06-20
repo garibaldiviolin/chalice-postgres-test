@@ -1,4 +1,3 @@
-import boto3
 import pytest
 from chalice.test import Client
 
@@ -19,16 +18,6 @@ def employee():
         "city": "Houston",
         "country": "United States of America",
     }
-
-
-@pytest.fixture
-def database_table():
-    dynamodb = boto3.resource(
-        "dynamodb",
-        endpoint_url="http://localhost:8000"
-    )
-
-    return dynamodb.Table("Employees")
 
 
 @pytest.fixture

@@ -1,8 +1,15 @@
-from botocore.exceptions import ClientError
 from chalice import Chalice, Response
 from pydantic.error_wrappers import ValidationError
+from psycopg2.errors import UniqueViolation
 
-from chalicelib.database import load_database_table
+from chalicelib.database import (
+    create_item,
+    delete_item,
+    filter_items,
+    get_item,
+    update_item,
+)
+from chalicelib.exceptions import NotFound
 from chalicelib.models import UpdateEmployee, Employee
 from chalicelib.services import get_query_parameters
 
@@ -19,9 +26,13 @@ def create_employee():
             status_code=400
         )
 
-    table = load_database_table("Employees")
-
-    table.put_item(Item=employee.dict())
+    try:
+        create_item(employee.dict())
+    except UniqueViolation:
+        return Response(
+            body={"error": "employee already exists"},
+            status_code=400
+        )
 
     return Response(
         body=employee.json(),
@@ -31,40 +42,25 @@ def create_employee():
 
 @app.route("/employees", methods=["GET"])
 def list_employees():
-    table = load_database_table("Employees")
-
     parameters = get_query_parameters(app.current_request.query_params)
 
-    if parameters.get("KeyConditionExpression"):
-        results = table.query(
-            **parameters
-        )
-    else:
-        results = table.scan(**parameters)
+    results = filter_items(parameters)
 
     response = {
-        "results": results["Items"]
+        "results": results
     }
-    next_results = results.get("LastEvaluatedKey")
-    if next_results:
-        response["last_result"] = next_results["username"]
 
     return response
 
 
 @app.route("/employees/{username}", methods=["GET"])
 def get_employee(username):
-    table = load_database_table("Employees")
-
     try:
-        response = table.get_item(Key={"username": username})
-    except ClientError:
-        return Response(body={"error": "internal_error"}, status_code=500)
-
-    try:
-        return Response(body=response["Item"], status_code=200)
-    except KeyError:
+        employee = get_item(username)
+    except NotFound:
         return Response(body={"error": "not_found"}, status_code=404)
+
+    return Response(body=employee, status_code=200)
 
 
 @app.route("/employees/{username}", methods=["PUT"])
@@ -77,38 +73,21 @@ def update_employee(username):
             status_code=400
         )
 
-    table = load_database_table("Employees")
-
-    response = table.update_item(
-        Key={"username": username},
-        UpdateExpression="set city=:city, country=:country",
-        ExpressionAttributeValues={
-            ":city": employee.dict()["city"],
-            ":country": employee.dict()["country"],
-        },
-        ReturnValues="ALL_NEW"
-    )
-    return response["Attributes"]
+    try:
+        response = update_item(
+            username,
+            employee.dict()
+        )
+    except NotFound:
+        return Response(body={"error": "not_found"}, status_code=404)
+    return response
 
 
 @app.route("/employees/{username}", methods=["DELETE"])
 def delete_employee(username):
-    table = load_database_table("Employees")
-
     try:
-        table.delete_item(
-            Key={
-                "username": username,
-            },
-            ConditionExpression="username = :v_username",
-            ExpressionAttributeValues={
-                ":v_username": username
-            }
-        )
-    except ClientError as e:
-        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-            return Response(body={"error": "not_found"}, status_code=404)
-        else:
-            return Response(body={"error": "internal_error"}, status_code=500)
+        delete_item(username)
+    except NotFound:
+        return Response(body={"error": "not_found"}, status_code=404)
     else:
         return Response(body=None, status_code=204)

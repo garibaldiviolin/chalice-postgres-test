@@ -1,30 +1,29 @@
-from boto3.dynamodb.conditions import Key
+from .models import Employee
 
 
 def get_query_parameters(query_params):
-    query_params = query_params or {}
+    query_params = query_params if query_params else {}
+    sql_parameters = ""
+    try:
+        limit = query_params.pop("limit")
+    except KeyError:
+        limit = 50
+    else:
+        limit = limit if limit.isnumeric() is True and int(limit) < 50 else 50
 
-    parameters = {
-        "Limit": 5,
-    }
+    filters = {}
 
-    for query_param in query_params:
-        if query_param in ["username", "city", "country"]:
-            if "KeyConditionExpression" not in parameters:
-                parameters["KeyConditionExpression"] = Key(query_param).eq(
-                    query_params[query_param]
-                )
-            else:
-                parameters["KeyConditionExpression"] &= Key(query_param).eq(
-                    query_params[query_param]
-                )
-        if query_param in ["city", "country"]:
-            parameters["IndexName"] = "RegionIndex"
+    employee_schema = Employee.schema()
+    for field, value in query_params.items():
+        if field in employee_schema["properties"].keys():
+            filters[field] = value
 
-    last_result = query_params.get("last_result")
-    if last_result:
-        parameters["ExclusiveStartKey"] = {
-            "username": last_result
-        }
+    if filters:
+        sql_parameters += " WHERE "
+        sql_parameters += " AND ".join(
+            "{} = '{}'".format(key, value)
+            for key, value in filters.items()
+        )
 
-    return parameters
+    sql_parameters += "LIMIT {}".format(limit)
+    return sql_parameters
