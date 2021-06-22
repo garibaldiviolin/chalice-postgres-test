@@ -52,7 +52,6 @@ def create_database():
     # Execute a command: this creates a new table
     cur.execute("""
         CREATE TABLE "employees" (
-            "id" serial NOT NULL PRIMARY KEY,
             "username" text NOT NULL UNIQUE,
             "city" text NOT NULL, "country" text NOT NULL
         );
