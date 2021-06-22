@@ -18,6 +18,7 @@ def create_database():
 
     cur = conn.cursor()
 
+    # Drop database, if it exists, before creating a new one
     cur.execute(sql.SQL("""
         DROP DATABASE IF EXISTS employees;
     """))
